@@ -1,4 +1,5 @@
 import argparse
+import torch
 from torch.utils.tensorboard import SummaryWriter#YARDEN
 import torch.distributed as dist
 import torch.optim as optim
@@ -53,7 +54,7 @@ if f:
 # helper function to show an image
 
 
-classes = ('HL', 'HR', 'YL', 'YR')
+classes = ('Racoon')
 
 # (used in the `plot_classes_preds` function below)
 def matplotlib_imshow(img, one_channel=False):
@@ -358,18 +359,17 @@ def train():
             pbar.set_description(s)
 
             # end batch ------------------------------------------------------------------------------------------------
-
             # ...log the running loss yarden
             running_loss += loss.item()
 
-            writer.add_scalar('training loss',   running_loss ,  epoch* len(dataloader) + i)
+            writer.add_scalar('training loss',   *mloss ,  epoch* len(dataloader) + i)
 
 
 
             # ...log a Matplotlib Figure showing the model's predictions on a
             # random mini-batch
-            writer.add_figure('predictions vs. actuals',  plot_classes_preds(model, imgs, targets),
-                                global_step=epoch * len(dataloader) + i)
+            #writer.add_figure('predictions vs. actuals',  plot_classes_preds(model, imgs, targets),
+            #                   global_step=epoch * len(dataloader) + i)
             running_loss = 0.0
 
         # Update scheduler
@@ -390,6 +390,8 @@ def train():
                                       save_json=final_epoch and is_coco,
                                       single_cls=opt.single_cls,
                                       dataloader=testloader)
+            writer.add_scalar('test loss',   *mloss ,  epoch* len(dataloader) + i)
+
 
         # Write epoch results
         with open(results_file, 'a') as f:
@@ -429,8 +431,8 @@ def train():
                 torch.save(chkpt, best)
 
             # Save backup every 10 epochs (optional)
-            # if epoch > 0 and epoch % 10 == 0:
-            #     torch.save(chkpt, wdir + 'backup%g.pt' % epoch)
+            if epoch >= 0 and epoch % 10 == 10:
+                 torch.save(chkpt, wdir + 'backup%g.pt' % epoch)
 
             # Delete checkpoint
             del chkpt
